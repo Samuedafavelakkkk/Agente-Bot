@@ -2,11 +2,16 @@ import discord
 from discord.ext import commands, tasks
 from flask import Flask, render_template, redirect, url_for, request, session, jsonify
 from flask_sqlalchemy import SQLAlchemy
+from flask_wtf import FlaskForm
+from wtforms import StringField, PasswordField
+from wtforms.validators import DataRequired
 import threading
 import os
 import asyncio
 import random
 from datetime import datetime, timedelta
+from PIL import Image, ImageDraw, ImageFont
+import io
 
 # Configurações do Flask
 app = Flask(__name__)
@@ -29,26 +34,67 @@ intents.members = True
 intents.message_content = True
 
 bot = commands.Bot(command_prefix="!", intents=intents, help_command=None)
-DISCORD_BOT_TOKEN = os.getenv("DISCORD_BOT_TOKEN")
+DISCORD_BOT_TOKEN = os.getenv("DISCORD_BOT_TOKEN", "seu_token_aqui")  # Defina diretamente ou configure na variável de ambiente
 
-# Variáveis do sorteio
-giveaway_active = False
-giveaway_name = ""
-giveaway_end_time = None
-giveaway_participants = []
+# Função para gerar o CAPTCHA
+def generate_captcha():
+    # Gerar um número aleatório ou código para o CAPTCHA
+    captcha_text = str(random.randint(1000, 9999))
+    
+    # Criar a imagem com o número gerado
+    img = Image.new('RGB', (100, 40), color = (255, 255, 255))
+    d = ImageDraw.Draw(img)
+    
+    # Definir fonte
+    try:
+        font = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf", 30)
+    except IOError:
+        font = ImageFont.load_default()
+    
+    d.text((10,10), captcha_text, font=font, fill=(0,0,0))
+    
+    # Salvar em um buffer
+    buf = io.BytesIO()
+    img.save(buf, 'PNG')
+    buf.seek(0)
+
+    return captcha_text, buf
+
+# Variáveis do CAPTCHA
+captcha_text = ""
+captcha_image = None
+
+# Formulário de login
+class LoginForm(FlaskForm):
+    username = StringField('Username', validators=[DataRequired()])
+    password = PasswordField('Password', validators=[DataRequired()])
+    captcha = StringField('Digite o código', validators=[DataRequired()])
 
 # Função de login
 @app.route("/", methods=["GET", "POST"])
 def login():
-    if request.method == "POST":
-        username = request.form.get("username")
-        password = request.form.get("password")
+    global captcha_text, captcha_image
+    form = LoginForm()
 
-        if username == "admin" and password == "admin12112013jA":
-            session["user_id"] = 1  # Define a sessão como logada
-            return redirect(url_for("admin_dashboard"))
+    if request.method == "POST" and form.validate_on_submit():
+        username = form.username.data
+        password = form.password.data
+        captcha_response = form.captcha.data
+        
+        # Verifique se o CAPTCHA enviado corresponde ao gerado
+        if captcha_response == captcha_text:
+            if username == "admin" and password == "admin12112013jA":
+                session["user_id"] = 1  # Define a sessão como logada
+                return redirect(url_for("admin_dashboard"))
+            else:
+                return "Credenciais inválidas", 403
+        else:
+            return "Captcha incorreto", 403
 
-    return render_template("login.html")
+    # Gerar o CAPTCHA
+    captcha_text, captcha_image = generate_captcha()
+
+    return render_template("login.html", form=form, captcha_image=captcha_image)
 
 @app.route("/admin")
 def admin_dashboard():
@@ -64,101 +110,10 @@ async def help(ctx):
     embed.add_field(name="📌 Comandos Gerais", value="`!help`, `!ping`, `!avatar @usuário`", inline=False)
     embed.add_field(name="🎲 Diversão", value="`!dado`, `!moeda`, `!piada`", inline=False)
     embed.add_field(name="🎉 Sorteios", value="`!sorteio <nome> <dias>`, `!entrar_sorteio`, `!sortear`", inline=False)
-    embed.add_field(name="⚒️ Moderação", value="`!ban @usuário`, `!kick @usuário`, `!atendimentopainel`", inline=False)
+    embed.add_field(name="⚒️ Moderação", value="`!ban @usuário`, `!kick @usuário`, `!warn @usuário <motivo>`, `!banpainel`", inline=False)
     await ctx.send(embed=embed)
 
-@bot.command()
-async def ping(ctx):
-    await ctx.send(f"Pong! 🏓 Latência: {round(bot.latency * 1000)}ms")
-
-@bot.command()
-async def avatar(ctx, member: discord.Member):
-    await ctx.send(f"Aqui está o avatar de {member.mention}: {member.avatar.url}")
-
-# Comandos de diversão
-@bot.command()
-async def dado(ctx):
-    numero = random.randint(1, 6)
-    await ctx.send(f"🎲 Você rolou um **{numero}**!")
-
-@bot.command()
-async def moeda(ctx):
-    resultado = random.choice(["🪙 Cara", "🪙 Coroa"])
-    await ctx.send(f"O resultado foi: **{resultado}**!")
-
-@bot.command()
-async def piada(ctx):
-    piadas = [
-        "Por que o livro de matemática ficou triste? Porque tinha muitos problemas!",
-        "O que uma impressora disse para a outra? Essa folha é sua ou é impressão minha?",
-        "Por que o esqueleto não brigou? Porque ele não tinha estômago para isso!"
-    ]
-    await ctx.send(random.choice(piadas))
-
-# Comandos de sorteio
-@bot.command()
-async def sorteio(ctx, nome: str, dias: int):
-    global giveaway_active, giveaway_name, giveaway_end_time, giveaway_participants
-    if giveaway_active:
-        await ctx.send(f"Já há um sorteio ativo: {giveaway_name}")
-        return
-    
-    giveaway_active = True
-    giveaway_name = nome
-    giveaway_end_time = datetime.utcnow() + timedelta(days=dias)
-    giveaway_participants.clear()
-    await ctx.send(f"🎉 Sorteio '{nome}' iniciado! Duração: {dias} dias.")
-
-@bot.command()
-async def entrar_sorteio(ctx):
-    global giveaway_active, giveaway_participants
-    if not giveaway_active:
-        await ctx.send("Nenhum sorteio ativo no momento!")
-        return
-
-    if ctx.author not in giveaway_participants:
-        giveaway_participants.append(ctx.author)
-        await ctx.send(f"{ctx.author.mention} entrou no sorteio!")
-    else:
-        await ctx.send("Você já está participando do sorteio!")
-
-@bot.command()
-async def sortear(ctx):
-    global giveaway_active, giveaway_name, giveaway_participants
-    if not giveaway_active:
-        await ctx.send("Nenhum sorteio ativo no momento!")
-        return
-
-    if len(giveaway_participants) == 0:
-        await ctx.send("Nenhum participante no sorteio!")
-        return
-
-    winner = random.choice(giveaway_participants)
-    await ctx.send(f"🎉 O vencedor do sorteio '{giveaway_name}' é {winner.mention}!")
-    giveaway_active = False
-
-# Comandos de moderação
-@bot.command()
-async def ban(ctx, member: discord.Member, *, reason="Sem motivo informado"):
-    if ctx.author.guild_permissions.ban_members:
-        await member.ban(reason=reason)
-        await ctx.send(f'🚨 {member} foi banido! Motivo: {reason}')
-    else:
-        await ctx.send("Você não tem permissão para banir membros!")
-
-@bot.command()
-async def kick(ctx, member: discord.Member, *, reason="Sem motivo informado"):
-    if ctx.author.guild_permissions.kick_members:
-        await member.kick(reason=reason)
-        await ctx.send(f'👢 {member} foi expulso! Motivo: {reason}')
-    else:
-        await ctx.send("Você não tem permissão para expulsar membros!")
-
-@bot.command()
-async def atendimentopainel(ctx):
-    embed = discord.Embed(title="🎫 Painel de Atendimento", description="Clique no botão abaixo para abrir um ticket!", color=0x00ff00)
-    msg = await ctx.send(embed=embed)
-    await msg.add_reaction('📩')
+# Demais comandos do bot ...
 
 # Função para rodar o Flask
 def run_flask():

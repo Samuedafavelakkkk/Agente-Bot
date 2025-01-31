@@ -1,26 +1,30 @@
-<!-- templates/login.html -->
 <!DOCTYPE html>
-<html>
+<html lang="pt-br">
 <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Login</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
 </head>
 <body>
-    <div class="container mt-5" style="max-width: 400px;">
-        <div class="card">
-            <div class="card-body">
-                <h2 class="card-title text-center mb-4">Login Admin</h2>
-                <form method="POST">
-                    <div class="mb-3">
-                        <input type="text" class="form-control" name="username" placeholder="Usuário" required>
-                    </div>
-                    <div class="mb-3">
-                        <input type="password" class="form-control" name="password" placeholder="Senha" required>
-                    </div>
-                    <button type="submit" class="btn btn-primary w-100">Entrar</button>
-                </form>
-            </div>
+    <h1>Login</h1>
+    <form method="POST" action="/">
+        {{ form.csrf_token }}
+        <div>
+            <label for="username">Username:</label>
+            {{ form.username }}
         </div>
-    </div>
+        <div>
+            <label for="password">Password:</label>
+            {{ form.password }}
+        </div>
+        <div>
+            <label for="captcha">Digite o código abaixo:</label><br>
+            <img src="data:image/png;base64,{{ captcha_image|b64encode }}" alt="Captcha"><br>
+            {{ form.captcha }}
+        </div>
+        <div>
+            <button type="submit">Login</button>
+        </div>
+    </form>
 </body>
 </html>
