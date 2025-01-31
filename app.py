@@ -46,7 +46,7 @@ def login():
 
         if username == "admin" and password == "admin12112013jA":
             session["user_id"] = 1  # Define a sessão como logada
-            return redirect(url_for("admin.html"))
+            return redirect(url_for("admin_dashboard"))
 
     return render_template("login.html")
 
@@ -166,8 +166,10 @@ def run_flask():
 
 # Inicializa o bot e Flask no asyncio
 async def start_bot_and_flask():
-    db.create_all()
-    
+    # Garantir que estamos no contexto da aplicação Flask
+    with app.app_context():
+        db.create_all()  # Cria as tabelas no banco de dados
+        
     flask_thread = threading.Thread(target=run_flask)
     flask_thread.start()
 
