@@ -20,7 +20,8 @@ jobs:
 
       - name: Install system dependencies
         run: |
-          sudo apt-get install libfreetype6-dev liblcms2-dev libopenjpeg-dev libwebp-dev
+          sudo apt-get update
+          sudo apt-get install libfreetype6-dev liblcms2-dev libopenjpeg8-dev libwebp-dev
           sudo apt-get update && sudo apt-get install -y libsndfile1 libjpeg-dev zlib1g-dev
 
       - name: Install dependencies
@@ -28,7 +29,7 @@ jobs:
           python -m venv venv  # Cria o ambiente virtual
           source venv/bin/activate  # Ativa o ambiente virtual
           python -m pip install --upgrade pip
-          pip install Pillow==10.0.0
+          pip install pillow[openjpeg]
           pip install -r requirements.txt  # Instala as dependências
 
       - name: Run Flask and Bot
