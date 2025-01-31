@@ -28,9 +28,15 @@ jobs:
           python3 -m venv venv
           source venv/bin/activate
           python -m pip install --upgrade pip
-          pip install -r requirements.txt  # Corrigi para "requirements.txt", supondo que esse seja o nome correto
+          pip install -r requirements.txt
 
       - name: Run Flask and Bot
         run: |
-          nohup python app.py &
+          source venv/bin/activate
+          python app.py
         continue-on-error: true
+
+      - name: Check nohup logs (if applicable)
+        run: |
+          cat nohup.out || echo "No nohup logs found"
+
