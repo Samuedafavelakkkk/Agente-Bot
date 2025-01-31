@@ -35,7 +35,7 @@ bot = commands.Bot(command_prefix="!", intents=intents, help_command=None)  # De
 BOT_INVITE_URL = "https://discord.com/api/oauth2/authorize?client_id=1334637379734081608&permissions=8&scope=bot"
 COMMUNITY_SERVER = "https://discord.gg/eZwKHyxHCV"
 
-DISCORD_BOT_TOKEN = "MTMzNDYzNzM3OTczNDA4MTYwOA.G4QtNC.xXzq74lzPcys8DdsNr7dSeQXd-2SRvwxkStCdk"  # Coloque seu token aqui
+DISCORD_BOT_TOKEN = os.getenv("MTMzNDYzNzM3OTczNDA4MTYwOA.G4QtNC.xXzq74lzPcys8DdsNr7dSeQXd-2SRvwxkStCdk")  # Variável de ambiente para segurança
 
 # Variáveis para controle de shutdown
 shutdown_in_progress = False
@@ -179,7 +179,8 @@ def run_flask():
 
 # Inicializa o bot e Flask no asyncio
 if __name__ == '__main__':
-    init_db()
+    # Inicializa o banco de dados
+    db.create_all()
     
     # Rodando Flask em um thread separado
     flask_thread = threading.Thread(target=run_flask)
