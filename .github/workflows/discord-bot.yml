@@ -16,7 +16,7 @@ jobs:
       - name: Setup Python
         uses: actions/setup-python@v2
         with:
-          python-version: '3.x'
+          python-version: '3.9'
 
       - name: Install dependencies
         run: |
@@ -24,7 +24,6 @@ jobs:
           pip install -r requests.txt
           sudo apt-get update
           sudo apt-get install -y python3-dev build-essential
-
       - name: Run Flask and Bot
         run: |
           nohup python app.py &  # Executa o bot e o Flask em segundo plano
