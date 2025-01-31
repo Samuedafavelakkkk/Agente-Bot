@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Painel Administrativo</title>
+    <style>
+        body {
+            font-family: monospace, sans-serif;
+            background-color: #282c34;
+            color: #fff;
+            margin: 0;
+            padding: 0;
+        }
+        .terminal {
+            background-color: #1e1e1e;
+            padding: 20px;
+            border-radius: 8px;
+            margin: 20px;
+            height: 400px;
+            overflow-y: auto;
+        }
+        .command-line {
+            width: 100%;
+            background-color: #333;
+            color: #fff;
+            border: none;
+            padding: 10px;
+            font-size: 16px;
+            border-radius: 5px;
+            margin-top: 10px;
+        }
+        .output {
+            margin-top: 10px;
+            font-family: monospace;
+        }
+    </style>
+</head>
+<body>
+    <div class="terminal">
+        <div id="output" class="output"></div>
+        <input type="text" id="command" class="command-line" placeholder="Digite um comando...">
+    </div>
+
+    <script>
+        document.getElementById("command").addEventListener("keydown", function(event) {
+            if (event.key === "Enter") {
+                event.preventDefault();
+                const command = event.target.value;
+                if (command) {
+                    executeCommand(command);
+                    event.target.value = '';  // Limpar o campo de entrada
+                }
+            }
+        });
+
+        function executeCommand(command) {
+            const outputElement = document.getElementById("output");
+            outputElement.innerHTML += `<p><strong>Comando:</strong> ${command}</p>`;
+
+            // Enviar o comando para o backend (Flask)
+            fetch("/execute_command", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                },
+                body: JSON.stringify({ command: command })
+            })
+            .then(response => response.json())
+            .then(data => {
+                outputElement.innerHTML += `<p><strong>Saída:</strong><br>${data.output}</p>`;
+                outputElement.scrollTop = outputElement.scrollHeight; // Rolar para o final
+            })
+            .catch(error => {
+                outputElement.innerHTML += `<p><strong>Erro:</strong> ${error.message}</p>`;
+            });
+        }
+    </script>
+</body>
+</html>

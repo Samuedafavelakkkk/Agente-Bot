@@ -1,0 +1,115 @@
+/* Resetando estilos básicos */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+/* Corpo da página */
+body {
+    font-family: Arial, sans-serif;
+    background-color: #f4f4f9;
+    color: #333;
+}
+
+/* Cabeçalho */
+header {
+    background-color: #1e2a38;
+    color: #fff;
+    padding: 10px 0;
+}
+
+header .container {
+    width: 80%;
+    margin: 0 auto;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+header h1 {
+    font-size: 24px;
+}
+
+header nav ul {
+    list-style-type: none;
+    display: flex;
+}
+
+header nav ul li {
+    margin: 0 15px;
+}
+
+header nav ul li a {
+    color: #fff;
+    text-decoration: none;
+    font-size: 16px;
+    transition: color 0.3s;
+}
+
+header nav ul li a:hover {
+    color: #ff9f00;
+}
+
+/* Seção principal */
+.main-content {
+    padding: 50px 0;
+    background-color: #fff;
+}
+
+.main-content .container {
+    width: 80%;
+    margin: 0 auto;
+    text-align: center;
+}
+
+.main-content h2 {
+    font-size: 32px;
+    margin-bottom: 20px;
+}
+
+.status-box {
+    background-color: #1e2a38;
+    color: #fff;
+    padding: 20px;
+    font-size: 20px;
+    border-radius: 8px;
+    margin-bottom: 30px;
+}
+
+.status-box p {
+    margin: 0;
+}
+
+/* Rodapé */
+footer {
+    background-color: #1e2a38;
+    color: #fff;
+    text-align: center;
+    padding: 10px 0;
+}
+
+footer p {
+    font-size: 14px;
+}
+
+/* Responsividade */
+@media (max-width: 768px) {
+    header .container {
+        flex-direction: column;
+        text-align: center;
+    }
+
+    header nav ul {
+        margin-top: 10px;
+        flex-direction: column;
+    }
+
+    header nav ul li {
+        margin: 10px 0;
+    }
+
+    .main-content .container {
+        width: 90%;
+    }
+}
