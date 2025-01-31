@@ -2,9 +2,8 @@ name: Run Bot and Flask Continuously
 
 on:
   schedule:
-    # Rodar a cada 5 minutos
-    - cron: '*/5 * * * *'
-  workflow_dispatch: # Permite rodar manualmente a partir do GitHub
+    - cron: '*/5 * * * *'  # Executa a cada 5 minutos
+  workflow_dispatch:  # Também pode ser disparado manualmente
 
 jobs:
   run_bot:
@@ -19,20 +18,19 @@ jobs:
         with:
           python-version: '3.10'
 
+      - name: Install dependencies
+        run: |
+          python -m venv venv  # Cria o ambiente virtual
+          source venv/bin/activate  # Ativa o ambiente virtual
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt  # Instala dependências
+
       - name: Install system dependencies
         run: |
-          sudo apt-get update
-          sudo apt-get install -y python3-dev build-essential libsndfile1
-
-      - name: Setup virtual environment and install dependencies
-        run: |
-          python3 -m venv venv
-          source venv/bin/activate
-          python -m pip install --upgrade pip
-          pip install -r requirements.txt
+          sudo apt-get update && sudo apt-get install -y libsndfile1
 
       - name: Run Flask and Bot
         run: |
-          source venv/bin/activate
-          python app.py
+          source venv/bin/activate  # Ativa novamente o ambiente virtual
+          nohup python app.py &  # Executa o bot e o Flask em segundo plano
         continue-on-error: true
