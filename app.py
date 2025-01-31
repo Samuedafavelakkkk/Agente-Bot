@@ -35,7 +35,7 @@ bot = commands.Bot(command_prefix="!", intents=intents, help_command=None)  # De
 BOT_INVITE_URL = "https://discord.com/api/oauth2/authorize?client_id=1334637379734081608&permissions=8&scope=bot"
 COMMUNITY_SERVER = "https://discord.gg/eZwKHyxHCV"
 
-DISCORD_BOT_TOKEN = os.getenv("MTMzNDYzNzM3OTczNDA4MTYwOA.G4QtNC.xXzq74lzPcys8DdsNr7dSeQXd-2SRvwxkStCdk")  # Variável de ambiente para segurança
+DISCORD_BOT_TOKEN = os.getenv("DISCORD_BOT_TOKEN")  # Variável de ambiente para segurança
 
 # Variáveis para controle de shutdown
 shutdown_in_progress = False
@@ -169,10 +169,6 @@ async def check_giveaway():
 # Iniciar o loop de tarefas
 check_giveaway.start()
 
-# Função para rodar o bot no asyncio
-async def start_bot():
-    await bot.start(DISCORD_BOT_TOKEN)
-
 # Função para rodar o Flask
 def run_flask():
     app.run(host='0.0.0.0', port=5000)
@@ -186,5 +182,5 @@ if __name__ == '__main__':
     flask_thread = threading.Thread(target=run_flask)
     flask_thread.start()
 
-    # Rodando o bot com asyncio
-    asyncio.run(start_bot())
+    # Rodando o bot com bot.run() em vez de asyncio.run()
+    bot.run(DISCORD_BOT_TOKEN)
