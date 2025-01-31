@@ -166,120 +166,24 @@ async def pick_winner():
 async def check_giveaway():
     await pick_winner()
 
+# Iniciar o loop de tarefas
 check_giveaway.start()
 
-# Rota para o comando de ajuda no painel de administração
-@app.route('/execute_command', methods=['POST'])
-@login_required
-def execute_command():
-    data = request.get_json()
-    command = data.get('command')
+# Função para rodar o bot no asyncio
+async def start_bot():
+    await bot.start(DISCORD_BOT_TOKEN)
 
-    if not command:
-        return jsonify({'output': 'Nenhum comando fornecido.'})
-
-    # Comando ajuda-prompt
-    if command == "ajuda-prompt":
-        help_message = """
-        Comandos disponíveis no painel de administração:
-        - shutdown-bot <tempo> <motivo> <mention> : Desliga o bot com o motivo e tempo. Exemplo: 10minutos 'Manutenção' true
-        - prompt-help : Mostra essa mensagem
-        - serverban <invite> <motivo> <permanente> : Banir um servidor com motivo e duração (se temporário)
-        - central-logs : Mostra os logs da central onde o bot foi executado
-        - sorteio-global <nome> <recompensa> <ir_na_DM> : Define um sorteio global
-        """
-        return jsonify({'output': help_message})
-
-    # Comando para iniciar sorteio global
-    if command.startswith("sorteio-global"):
-        try:
-            args = command.split(" ")
-            nome = args[1]
-            recompensa = args[2]
-            ir_na_dm = args[3].lower() == "true" if len(args) > 3 else False
-            global giveaway_recompensa, giveaway_dm
-            giveaway_recompensa = recompensa
-            giveaway_dm = ir_na_dm
-            return jsonify({'output': f"Sorteio global '{nome}' configurado com recompensa: {recompensa}, DM para ganhador: {ir_na_dm}"})
-        except Exception as e:
-            return jsonify({'output': f"Erro ao processar sorteio global: {str(e)}"})
-
-    # Comando shutdown-bot
-    if command.startswith("shutdown-bot"):
-        try:
-            args = command.split(" ")
-            tempo = args[1]
-            motivo = args[2]
-            mention = args[3].lower() == "true"
-            global shutdown_in_progress, shutdown_reason, shutdown_mention
-            shutdown_in_progress = True
-            shutdown_reason = motivo
-            shutdown_mention = mention
-            return jsonify({'output': f"Bot será desligado em {tempo} por motivo: {motivo}. Mencionar: {mention}"})
-        except Exception as e:
-            return jsonify({'output': f"Erro ao processar shutdown: {str(e)}"})
-
-    # Executa o comando no terminal
-    try:
-        result = subprocess.run(command, shell=True, capture_output=True, text=True)
-        output = result.stdout if result.returncode == 0 else result.stderr
-    except Exception as e:
-        output = str(e)
-
-    return jsonify({'output': output})
-
-# Rotas Web
-@app.route('/')
-def index():
-    bot_status = "Online" if bot.is_ready() else "Offline"
-    return render_template('index.html', bot_status=bot_status)
-
-@app.route('/login', methods=['GET', 'POST'])
-def login():
-    if request.method == 'POST':
-        username = request.form['username']
-        password = request.form['password']
-        
-        user = User.query.filter_by(username=username).first()
-        if user and check_password_hash(user.password, password) and user.is_admin:
-            session['user_id'] = user.id
-            return redirect(url_for('admin_panel'))
-        return "Credenciais inválidas!"
-    return render_template('login.html')
-
-@app.route('/admin')
-@login_required
-def admin_panel():
-    bot_status = "Online" if bot.is_ready() else "Offline"
-    return render_template('admin.html', bot_status=bot_status)
-
-# Inicialização
-def init_db():
-    with app.app_context():
-        db.create_all()
-        if not User.query.filter_by(username='admin').first():
-            admin = User(
-                username='admin',
-                password=generate_password_hash('admin123'),
-                is_admin=True
-            )
-            db.session.add(admin)
-            db.session.commit()
-
+# Função para rodar o Flask
 def run_flask():
     app.run(host='0.0.0.0', port=5000)
 
-def run_bot():
-    asyncio.run(bot.start(DISCORD_BOT_TOKEN))
-
+# Inicializa o bot e Flask no asyncio
 if __name__ == '__main__':
     init_db()
     
+    # Rodando Flask em um thread separado
     flask_thread = threading.Thread(target=run_flask)
-    bot_thread = threading.Thread(target=run_bot)
-    
     flask_thread.start()
-    bot_thread.start()
-    
-    flask_thread.join()
-    bot_thread.join()
+
+    # Rodando o bot com asyncio
+    asyncio.run(start_bot())
