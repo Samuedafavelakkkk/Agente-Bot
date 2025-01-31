@@ -270,7 +270,7 @@ def run_flask():
     app.run(host='0.0.0.0', port=5000)
 
 def run_bot():
-    bot.run(DISCORD_BOT_TOKEN)
+    asyncio.run(bot.start(DISCORD_BOT_TOKEN))
 
 if __name__ == '__main__':
     init_db()
