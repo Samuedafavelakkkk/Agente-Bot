@@ -1,3 +1,8 @@
-.env
+# Ambiente virtual
 venv/
-__pycache__/
+
+# Arquivo .env
+.env
+
+# Arquivos de logs
+*.log

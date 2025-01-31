@@ -11,6 +11,10 @@ from PIL import Image, ImageDraw, ImageFont
 import io
 import threading
 import asyncio
+from dotenv import load_dotenv
+
+# Carregar variáveis do arquivo .env
+load_dotenv()
 
 # Configurações do Flask
 app = Flask(__name__)
@@ -33,6 +37,8 @@ intents.members = True
 intents.message_content = True
 
 bot = commands.Bot(command_prefix="!", intents=intents)
+
+# Obter o token do bot do ambiente
 DISCORD_BOT_TOKEN = os.getenv("DISCORD_BOT_TOKEN")
 
 # Função para gerar o CAPTCHA
