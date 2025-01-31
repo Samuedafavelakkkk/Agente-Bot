@@ -34,7 +34,7 @@ intents.members = True
 intents.message_content = True
 
 bot = commands.Bot(command_prefix="!", intents=intents, help_command=None)
-DISCORD_BOT_TOKEN = os.getenv("DISCORD_BOT_TOKEN", "seu_token_aqui")  # Defina diretamente ou configure na variável de ambiente
+DISCORD_BOT_TOKEN = os.getenv("DISCORD_BOT_TOKEN", "MTMzNDYzNzM3OTczNDA4MTYwOA.GyZo59.Y2ARbxSWbGGQNA1d7qC5szBvLzHcFgIgaQIGJ8")  # Defina diretamente ou configure na variável de ambiente
 
 # Função para gerar o CAPTCHA
 def generate_captcha():
