@@ -23,14 +23,15 @@ jobs:
           python -m venv venv  # Cria o ambiente virtual
           source venv/bin/activate  # Ativa o ambiente virtual
           python -m pip install --upgrade pip
-          pip install -r requirements.txt  # Instala dependências
+          pip install -r requirements.txt  # Instala as dependências
 
       - name: Install system dependencies
         run: |
-          sudo apt-get update && sudo apt-get install -y libsndfile1
+          sudo apt-get update && sudo apt-get install -y libsndfile1  # Instalar dependências necessárias para o bot
 
       - name: Run Flask and Bot
         run: |
-          source venv/bin/activate  # Ativa novamente o ambiente virtual
-          nohup python app.py &  # Executa o bot e o Flask em segundo plano
-        continue-on-error: true
+          source venv/bin/activate  # Ativa o ambiente virtual novamente
+          nohup python app.py &  # Executa o Flask e o bot em segundo plano
+        continue-on-error: true  # Continua tentando mesmo se houver falha
+

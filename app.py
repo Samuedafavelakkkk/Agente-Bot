@@ -1,17 +1,16 @@
 import discord
-from discord.ext import commands, tasks
-from flask import Flask, render_template, redirect, url_for, request, session, jsonify
+from discord.ext import commands
+from flask import Flask, render_template, redirect, url_for, request, session
 from flask_sqlalchemy import SQLAlchemy
 from flask_wtf import FlaskForm
 from wtforms import StringField, PasswordField
 from wtforms.validators import DataRequired
-import threading
-import os
-import asyncio
 import random
-from datetime import datetime, timedelta
+import os
 from PIL import Image, ImageDraw, ImageFont
 import io
+import threading
+import asyncio
 
 # Configurações do Flask
 app = Flask(__name__)
@@ -33,34 +32,27 @@ intents = discord.Intents.default()
 intents.members = True
 intents.message_content = True
 
-bot = commands.Bot(command_prefix="!", intents=intents, help_command=None)
-DISCORD_BOT_TOKEN = os.getenv("DISCORD_BOT_TOKEN", "MTMzNDYzNzM3OTczNDA4MTYwOA.GyZo59.Y2ARbxSWbGGQNA1d7qC5szBvLzHcFgIgaQIGJ8")  # Defina diretamente ou configure na variável de ambiente
+bot = commands.Bot(command_prefix="!", intents=intents)
+DISCORD_BOT_TOKEN = os.getenv("DISCORD_BOT_TOKEN")
 
 # Função para gerar o CAPTCHA
 def generate_captcha():
-    # Gerar um número aleatório ou código para o CAPTCHA
     captcha_text = str(random.randint(1000, 9999))
-    
-    # Criar a imagem com o número gerado
-    img = Image.new('RGB', (100, 40), color = (255, 255, 255))
+    img = Image.new('RGB', (100, 40), color=(255, 255, 255))
     d = ImageDraw.Draw(img)
     
-    # Definir fonte
     try:
         font = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf", 30)
     except IOError:
         font = ImageFont.load_default()
     
-    d.text((10,10), captcha_text, font=font, fill=(0,0,0))
-    
-    # Salvar em um buffer
+    d.text((10, 10), captcha_text, font=font, fill=(0, 0, 0))
     buf = io.BytesIO()
     img.save(buf, 'PNG')
     buf.seek(0)
 
     return captcha_text, buf
 
-# Variáveis do CAPTCHA
 captcha_text = ""
 captcha_image = None
 
@@ -70,7 +62,7 @@ class LoginForm(FlaskForm):
     password = PasswordField('Password', validators=[DataRequired()])
     captcha = StringField('Digite o código', validators=[DataRequired()])
 
-# Função de login
+# Rota de login
 @app.route("/", methods=["GET", "POST"])
 def login():
     global captcha_text, captcha_image
@@ -81,17 +73,15 @@ def login():
         password = form.password.data
         captcha_response = form.captcha.data
         
-        # Verifique se o CAPTCHA enviado corresponde ao gerado
         if captcha_response == captcha_text:
             if username == "admin" and password == "admin12112013jA":
-                session["user_id"] = 1  # Define a sessão como logada
+                session["user_id"] = 1
                 return redirect(url_for("admin_dashboard"))
             else:
                 return "Credenciais inválidas", 403
         else:
             return "Captcha incorreto", 403
 
-    # Gerar o CAPTCHA
     captcha_text, captcha_image = generate_captcha()
 
     return render_template("login.html", form=form, captcha_image=captcha_image)
@@ -100,10 +90,9 @@ def login():
 def admin_dashboard():
     if "user_id" not in session:
         return redirect(url_for("login"))
-
     return render_template("admin_dashboard.html")
 
-# Comandos gerais
+# Comandos gerais do bot
 @bot.command()
 async def help(ctx):
     embed = discord.Embed(title="Comandos do Bot", color=0x7289da)
@@ -113,15 +102,12 @@ async def help(ctx):
     embed.add_field(name="⚒️ Moderação", value="`!ban @usuário`, `!kick @usuário`, `!warn @usuário <motivo>`, `!banpainel`", inline=False)
     await ctx.send(embed=embed)
 
-# Demais comandos do bot ...
-
 # Função para rodar o Flask
 def run_flask():
     app.run(host='0.0.0.0', port=5000)
 
-# Inicializa o bot e Flask no asyncio
+# Inicializa o bot e Flask
 async def start_bot_and_flask():
-    # Garantir que estamos no contexto da aplicação Flask
     with app.app_context():
         db.create_all()  # Cria as tabelas no banco de dados
         
