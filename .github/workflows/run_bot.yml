@@ -18,6 +18,15 @@ jobs:
         with:
           python-version: '3.10'
 
+      - name: Add universe repository
+        run: |
+          sudo add-apt-repository universe
+          sudo apt-get update
+
+      - name: Check if libopenjp2-7-dev is available
+        run: |
+          apt-cache search libopenjp2
+
       - name: Install system dependencies
         run: |
           sudo apt-get update
@@ -25,7 +34,7 @@ jobs:
           pkg-config valgrind emacs-nox libltdl-dev libtiff-tools exiftool git git-lfs cmake \
           liblcms2-dev libtiff-dev libpng-dev libheif-dev libz-dev unzip libzstd-dev libwebp-dev \
           build-essential hwinfo python3-jpylyzer libfreetype6-dev liblcms2-dev libopenjp2-7-dev \
-          libwebp-dev libsndfile1 libjpeg-dev zlib1g-dev
+          libopenjp2-tools libwebp-dev libsndfile1 libjpeg-dev zlib1g-dev
 
       - name: Install OpenJPEG
         run: |
