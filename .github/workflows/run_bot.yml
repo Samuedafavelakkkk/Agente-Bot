@@ -21,9 +21,9 @@ jobs:
       - name: Install system dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install pkg-config valgrind emacs-nox libltdl-dev libtiff-tools exiftool git git-lfs cmake liblcms2-dev libtiff-dev libpng-dev libheif1 libheif-dev libz-dev unzip libzstd-dev libwebp-dev build-essential hwinfo
-          sudo python get-pip.py
-          sudo apt-get install python3-jpylyzer
+          sudo apt-get install -y pkg-config valgrind emacs-nox libltdl-dev libtiff-tools exiftool git git-lfs cmake \
+          liblcms2-dev libtiff-dev libpng-dev libheif1 libheif-dev libz-dev unzip libzstd-dev libwebp-dev build-essential \
+          hwinfo python3-jpylyzer libfreetype6-dev liblcms2-dev libopenjp2-7-dev libwebp-dev libsndfile1 libjpeg-dev zlib1g-dev
           
           # Baixando e instalando o OpenJPEG
           wget https://github.com/uclouvain/openjpeg/archive/master.zip
@@ -34,27 +34,24 @@ jobs:
           cmake -DCMAKE_BUILD_TYPE=Release ..
           make
           sudo make install
-          sudo make clean
           cd ~
-          rm -rf openjpeg-master master.zip
-
+          rm -rf openjpeg-master master.zip  # Limpeza dos arquivos baixados
+          
           # Baixando e instalando o ImageMagick
           wget https://github.com/ImageMagick/ImageMagick/archive/refs/heads/main.zip
           unzip main.zip
           cd ImageMagick-main
-          sudo apt-get install libgrokj2k1 grokj2k-tools libgrokj2k1-dev libgrokj2k1-doc
+          sudo apt-get install -y libgrokj2k1 grokj2k-tools libgrokj2k1-dev libgrokj2k1-doc
           mkdir ~/images
           cd ~/images
           wget -O in.tif https://storage.googleapis.com/linked_content/icc/ICC_profile_test_image_Farbkreis_120grad.tif
           sudo ldconfig
-          convert in.tif out_via_imagemagick.jp2 | exiftool out_via_imagemagick.jp2 | less
+          convert in.tif out_via_imagemagick.jp2 | exiftool out_via_imagemagick.jp2
           opj_compress -i in.tif -o out_lossy_42db.jp2 -p RLCP -t 1024,1024 -EPH -SOP -I -q 42
           grk_compress -i in.tif -o grk_out_lossy_42db.jp2 -p RLCP -t 1024,1024 -EPH -SOP -I -q 42
           jpylyzer *.jp2 | grep '<isValid format="jp2">True</isValid>'
-          
-          # Instalar dependências de imagem
-          sudo apt-get install libfreetype6-dev liblcms2-dev libopenjpeg-dev libwebp-dev
-          sudo apt-get update && sudo apt-get install -y libsndfile1 libjpeg-dev zlib1g-dev
+          cd ~
+          rm -rf ImageMagick-main main.zip  # Limpeza dos arquivos baixados
 
       - name: Install dependencies
         run: |
