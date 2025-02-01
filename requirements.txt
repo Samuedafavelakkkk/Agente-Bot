@@ -1,4 +1,5 @@
-Flask==2.0.2
+flask==2.1.2
+werkzeug==2.1.2
 Flask-SQLAlchemy==2.5.1
 Flask-WTF==0.15.1
 discord.py==2.0.1
