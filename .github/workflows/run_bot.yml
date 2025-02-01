@@ -37,7 +37,7 @@ jobs:
           sudo make clean
           cd ~
           rm -rf openjpeg-master master.zip
-          
+
           # Baixando e instalando o ImageMagick
           wget https://github.com/ImageMagick/ImageMagick/archive/refs/heads/main.zip
           unzip main.zip
