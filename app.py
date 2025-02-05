@@ -2,29 +2,23 @@ import discord
 from discord.ext import commands
 from flask import Flask, render_template, redirect, url_for, request, session
 from flask_sqlalchemy import SQLAlchemy
-from flask_wtf import FlaskForm
-from wtforms import StringField, PasswordField
-from wtforms.validators import DataRequired
-import random
 import os
-from PIL import Image, ImageDraw, ImageFont
-import io
 import threading
 import asyncio
+import subprocess
 from dotenv import load_dotenv
 
-# Carregar variáveis do arquivo .env
+# Carregar variáveis do ambiente
 load_dotenv()
 
-# Configurações do Flask
+# Configuração do Flask
 app = Flask(__name__)
 app.secret_key = os.urandom(24)
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///users.db'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
-
 db = SQLAlchemy(app)
 
-# Modelo de usuário
+# Modelo de Usuário
 class User(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     username = db.Column(db.String(100), nullable=False, unique=True)
@@ -33,94 +27,194 @@ class User(db.Model):
 
 # Configuração do bot Discord
 intents = discord.Intents.default()
+intents.messages = True
+intents.guilds = True
 intents.members = True
 intents.message_content = True
 
 bot = commands.Bot(command_prefix="!", intents=intents)
 
-# Obter o token do bot do ambiente
 DISCORD_BOT_TOKEN = os.getenv("DISCORD_BOT_TOKEN")
 
-# Função para gerar o CAPTCHA
-def generate_captcha():
-    captcha_text = str(random.randint(1000, 9999))
-    img = Image.new('RGB', (100, 40), color=(255, 255, 255))
-    d = ImageDraw.Draw(img)
-    
-    try:
-        font = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf", 30)
-    except IOError:
-        font = ImageFont.load_default()
-    
-    d.text((10, 10), captcha_text, font=font, fill=(0, 0, 0))
-    buf = io.BytesIO()
-    img.save(buf, 'PNG')
-    buf.seek(0)
+# Variáveis globais para controlar o status do bot
+bot_status = "Desconhecido"  # Inicialmente, desconhecido, já que o bot ainda não foi iniciado
+error_log = []  # Lista para armazenar logs de erros
 
-    return captcha_text, buf
-
-captcha_text = ""
-captcha_image = None
-
-# Formulário de login
-class LoginForm(FlaskForm):
-    username = StringField('Username', validators=[DataRequired()])
-    password = PasswordField('Password', validators=[DataRequired()])
-    captcha = StringField('Digite o código', validators=[DataRequired()])
-
-# Rota de login
-@app.route("/", methods=["GET", "POST"])
-def login():
-    global captcha_text, captcha_image
-    form = LoginForm()
-
-    if request.method == "POST" and form.validate_on_submit():
-        username = form.username.data
-        password = form.password.data
-        captcha_response = form.captcha.data
-        
-        if captcha_response == captcha_text:
-            if username == "admin" and password == "admin12112013jA":
-                session["user_id"] = 1
-                return redirect(url_for("admin_dashboard"))
-            else:
-                return "Credenciais inválidas", 403
-        else:
-            return "Captcha incorreto", 403
-
-    captcha_text, captcha_image = generate_captcha()
-
-    return render_template("login.html", form=form, captcha_image=captcha_image)
-
-@app.route("/admin")
-def admin_dashboard():
-    if "user_id" not in session:
-        return redirect(url_for("login"))
-    return render_template("admin_dashboard.html")
-
-# Comandos gerais do bot
+# 📌 **Comandos do Bot**
 @bot.command()
-async def help(ctx):
-    embed = discord.Embed(title="Comandos do Bot", color=0x7289da)
-    embed.add_field(name="📌 Comandos Gerais", value="`!help`, `!ping`, `!avatar @usuário`", inline=False)
-    embed.add_field(name="🎲 Diversão", value="`!dado`, `!moeda`, `!piada`", inline=False)
-    embed.add_field(name="🎉 Sorteios", value="`!sorteio <nome> <dias>`, `!entrar_sorteio`, `!sortear`", inline=False)
-    embed.add_field(name="⚒️ Moderação", value="`!ban @usuário`, `!kick @usuário`, `!warn @usuário <motivo>`, `!banpainel`", inline=False)
-    await ctx.send(embed=embed)
+async def avatar(ctx, user: discord.User = None):
+    user = user or ctx.author
+    await ctx.send(user.avatar_url)
 
-# Função para rodar o Flask
+@bot.command()
+async def ban(ctx, member: discord.Member, *, reason=None):
+    await member.ban(reason=reason)
+    await ctx.send(f"{member} foi banido(a). Motivo: {reason}")
+
+@bot.command()
+async def dado(ctx):
+    import random
+    await ctx.send(f"🎲 Você rolou o número {random.randint(1, 6)}!")
+
+@bot.command()
+async def entrar_sorteio(ctx):
+    # Este comando pode entrar em um sorteio, como a lógica já foi configurada
+    await ctx.send("Você entrou no sorteio!")
+
+@bot.command()
+async def ajuda(ctx):
+    comandos_info = """
+    📜 **Lista de Comandos:**
+    🔹 `!ping` → Mostra a latência do bot.
+    🔹 `!avatar @usuário` → Mostra o avatar do usuário.
+    🔹 `!dado` → Rola um dado de 6 lados.
+    🔹 `!moeda` → Cara ou coroa.
+    🔹 `!piada` → Conta uma piada.
+    🔹 `!sorteio <nome> <dias>` → Cria um sorteio.
+    🔹 `!entrar_sorteio` → Entra em um sorteio.
+    🔹 `!sortear` → Sorteia um vencedor.
+    🔹 `!ban @usuário` → Bane um usuário.
+    🔹 `!kick @usuário` → Expulsa um usuário.
+    🔹 `!mute @usuário <tempo>` → Silencia um usuário.
+    🔹 `!warn @usuário <motivo>` → Dá um aviso a um usuário.
+    🔹 `!setup` → Configura o servidor e o canal de suporte.
+    🔹 `!botinvite` → Envia o convite do bot.
+    """
+    await ctx.send(comandos_info)
+
+@bot.command()
+async def kick(ctx, member: discord.Member, *, reason=None):
+    await member.kick(reason=reason)
+    await ctx.send(f"{member} foi expulso(a). Motivo: {reason}")
+
+@bot.command()
+async def moeda(ctx):
+    import random
+    resultado = random.choice(["Cara", "Coroa"])
+    await ctx.send(f"🪙 Resultado: {resultado}")
+
+@bot.command()
+async def parceriacancelar(ctx, motivo, link_do_servidor):
+    # Comando para cancelar uma parceria (lógica a ser ajustada conforme a necessidade)
+    await ctx.send(f"Parceria com {link_do_servidor} cancelada. Motivo: {motivo}")
+
+@bot.command()
+async def piada(ctx):
+    import random
+    piadas = [
+        "Por que o livro de matemática se suicidou? Porque estava cheio de problemas!",
+        "Qual é o cúmulo da rapidez? Correr atrás do prejuízo!",
+        "O que é um vegetariano que come carne? Um ex-vegetariano.",
+    ]
+    await ctx.send(random.choice(piadas))
+
+@bot.command()
+async def ping(ctx):
+    await ctx.send(f"Pong! Latência: {round(bot.latency * 1000)}ms")
+
+@bot.command()
+async def setparceiros(ctx, link_do_servidor, criador_do_servidor, mensagem_de_divulgacao, midia_opcional=None):
+    # Comando para definir um parceiro (lógica a ser ajustada conforme a necessidade)
+    await ctx.send(f"Parceiro definido: {link_do_servidor} | Criador: {criador_do_servidor} | Mensagem: {mensagem_de_divulgacao}")
+
+@bot.command()
+async def setup(ctx):
+    guild = ctx.guild
+    cargo_inicial = discord.utils.get(guild.roles, name="Membro")
+
+    if not cargo_inicial:
+        cargo_inicial = await guild.create_role(name="Membro")
+
+    await ctx.send(f"Cargo inicial `{cargo_inicial.name}` definido para novos membros.")
+
+    categoria = discord.utils.get(guild.categories, name="Suporte")
+    if not categoria:
+        categoria = await guild.create_category("Suporte")
+
+    canal_suporte = await guild.create_text_channel("📩-suporte", category=categoria)
+    await canal_suporte.set_permissions(guild.default_role, send_messages=False)
+
+    await ctx.send(f"Canal de suporte `{canal_suporte.name}` criado.")
+
+@bot.command()
+async def sortear(ctx):
+    # Comando de sorteio
+    await ctx.send("Sorteio realizado! O vencedor é...")
+
+@bot.command()
+async def sorteio(ctx, nome, dias):
+    # Comando para iniciar um sorteio
+    await ctx.send(f"Sorteio '{nome}' criado para {dias} dias!")
+
+
+# 📌 **Rodando Flask e Bot**
 def run_flask():
-    app.run(host='0.0.0.0', port=5000)
-
-# Inicializa o bot e Flask
-async def start_bot_and_flask():
     with app.app_context():
-        db.create_all()  # Cria as tabelas no banco de dados
-        
+        db.create_all()
+    app.run(host="0.0.0.0", port=5000, use_reloader=False)
+
+async def start_bot_and_flask():
+    global bot_status
+    bot_status = "Ativado"  # Atualiza o status quando o bot é iniciado
     flask_thread = threading.Thread(target=run_flask)
     flask_thread.start()
 
-    await bot.start(DISCORD_BOT_TOKEN)
+    try:
+        await bot.start(DISCORD_BOT_TOKEN)
+    except Exception as e:
+        bot_status = "Desativado"
+        error_log.append(f"Erro ao iniciar o bot: {str(e)}")  # Armazena o erro no log
+        raise e
 
-if __name__ == '__main__':
+# 📌 **Rotas do Flask**
+@app.route("/")
+def index():
+    global bot_status
+    return render_template("index.html", bot_status=bot_status, error_log=error_log)
+
+@app.route("/login", methods=["GET", "POST"])
+def login():
+    if request.method == "POST":
+        username = request.form["username"]
+        password = request.form["password"]
+
+        user = User.query.filter_by(username=username).first()
+
+        if user and user.password == password:
+            session["user_id"] = user.id
+            return redirect(url_for("admin_dashboard"))
+        else:
+            error_log.append(f"Tentativa de login falhou para o usuário '{username}'")
+            return render_template("login.html", erro="Login inválido. Tente novamente.")
+
+    return render_template("login.html")
+
+@app.route("/admin_dashboard")
+def admin_dashboard():
+    if "user_id" not in session:
+        return redirect(url_for("login"))
+
+    return render_template("admin_dashboard.html", resposta="")
+
+@app.route("/executar_comando", methods=["POST"])
+def executar_comando():
+    if "user_id" not in session:
+        return redirect(url_for("login"))
+
+    comando = request.form["comando"]
+    comandos_permitidos = ["ls", "cat", "echo", "pwd"]
+
+    if comando.split()[0] not in comandos_permitidos:
+        return "Comando não permitido!"
+
+    try:
+        resultado = subprocess.check_output(comando, shell=True, stderr=subprocess.STDOUT)
+        resposta = resultado.decode("utf-8")
+    except subprocess.CalledProcessError as e:
+        resposta = f"Erro ao executar o comando: {e.output.decode('utf-8')}"
+        error_log.append(f"Erro ao executar o comando '{comando}': {resposta}")
+
+    return render_template("admin_dashboard.html", resposta=resposta)
+
+if __name__ == "__main__":
     asyncio.run(start_bot_and_flask())
