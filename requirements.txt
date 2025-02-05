@@ -1,4 +1,4 @@
-flask==2.1.2
+flask==2.2.5
 werkzeug==2.1.2
 Flask-SQLAlchemy==2.5.1
 Flask-WTF==0.15.1
